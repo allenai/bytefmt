@@ -1,6 +1,6 @@
 // Package bytefmt is a utility to parse, format, and manipulate byte quantities.
-// This package emphasizes accuracy over performance and implements both binary
-// and decimal International System of Units (SI) conventions.
+// This package emphasizes accuracy and adherence to standards over performance and
+// implements both binary and decimal International System of Units (SI) conventions.
 package bytefmt
 
 import (
