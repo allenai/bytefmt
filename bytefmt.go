@@ -12,6 +12,13 @@ import (
 	"strings"
 )
 
+// Commonly used values; do not change.
+var (
+	ten      = big.NewInt(10)
+	tenPow3  = big.NewInt(1000)
+	twoPow10 = big.NewInt(1024)
+)
+
 // New returns a new size from a count of bytes.
 func New(bytes int64, base Base) *Size {
 	return &Size{bytes, base}
@@ -31,6 +38,30 @@ func (s Size) IsZero() bool { return s.bytes == 0 }
 
 // Equal returns whether two sizes represent the same number of bytes.
 func (s Size) Equal(t Size) bool { return s.bytes == t.bytes }
+
+// Cmp compares s and t and returns:
+//   -1 if s <  y
+//    0 if s == y
+//   +1 if s >  y
+func (s Size) Cmp(y Size) int {
+	switch {
+	case s.bytes == y.bytes:
+		return 0
+	case s.bytes < y.bytes:
+		return -1
+	default:
+		return 1
+	}
+}
+
+// Add adds size y to the current value.
+func (s *Size) Add(y Size) { s.bytes += y.bytes }
+
+// Sub subtracts size y from the current value.
+func (s *Size) Sub(y Size) { s.bytes += y.bytes }
+
+// Neg sets the current value to -s.
+func (s *Size) Neg() { s.bytes = -1 }
 
 // SetInt64 overrides a size's byte count while leaving its unit scale unchanged.
 func (s *Size) SetInt64(bytes int64) { s.bytes = bytes }
@@ -57,22 +88,17 @@ func Parse(s string) (Size, error) {
 	return size, nil
 }
 
-// Commonly used values; do not change.
-var (
-	ten      = big.NewInt(10)
-	tenPow3  = big.NewInt(1000)
-	twoPow10 = big.NewInt(1024)
-)
-
 func parse(s string) (Size, error) {
 	if len(s) == 0 {
 		return Size{}, errors.New("empty string")
 	}
-	if s[0] == '-' {
-		return Size{}, errors.New("values must be non-negative")
-	}
 
 	pos, end := 0, len(s)
+
+	// Skip the sign. This is included by default.
+	if len(s) != 0 && s[0] == '-' {
+		pos++
+	}
 
 	// Parse the whole number part.
 	var whole string
@@ -143,7 +169,7 @@ func parse(s string) (Size, error) {
 	}
 
 	if !val.IsInt64() {
-		return Size{}, errors.New("value exceeds 63 bits")
+		return Size{}, errors.New("value exceeds 64 bits")
 	}
 
 	return Size{bytes: val.Int64(), Base: base}, nil
@@ -157,13 +183,13 @@ func (s Size) String() string {
 
 	switch s.Base {
 	case 0, Metric:
-		for mant >= 1000 && mant%1000 == 0 && exp < len(metricSuffixes) {
+		for (mant >= 1000 || mant <= -1000) && mant%1000 == 0 && exp < len(metricSuffixes) {
 			exp++
 			mant = mant / 1000
 		}
 		suffix = metricSuffixes[exp]
 	case Binary:
-		for mant >= 1024 && mant%1024 == 0 && exp < len(binarySuffixes) {
+		for (mant >= 1000 || mant <= -1000) && mant%1024 == 0 && exp < len(binarySuffixes) {
 			exp++
 			mant = mant / 1024
 		}

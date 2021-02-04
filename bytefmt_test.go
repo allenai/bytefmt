@@ -15,11 +15,10 @@ func TestParse(t *testing.T) {
 	}{
 		// Invalid values should produce errors.
 		{In: "", ExpectErr: "empty string"},
-		{In: "-1B", ExpectErr: "values must be non-negative"},
 		{In: " B", ExpectErr: "must start with a number"},
 		{In: ". B", ExpectErr: "must start with a number"},
-		{In: "9223372036854775808", ExpectErr: "value exceeds 63 bits"},
-		{In: "8.0 EiB", ExpectErr: "value exceeds 63 bits"},
+		{In: "9223372036854775808", ExpectErr: "value exceeds 64 bits"},
+		{In: "8.0 EiB", ExpectErr: "value exceeds 64 bits"},
 		{In: "1 tUb", ExpectErr: `"tUb" is not a valid byte quantity`},
 
 		// Missing leading or trailing digits is OK.
@@ -30,6 +29,11 @@ func TestParse(t *testing.T) {
 		{In: "0", ExpectBytes: 0, ExpectBase: Metric},
 		{In: "0 B", ExpectBytes: 0, ExpectBase: Metric},
 		{In: "0mib", ExpectBytes: 0, ExpectBase: Binary},
+
+		// Min values parse correctly.
+		{In: "-9223372036854775808", ExpectBytes: -9_223_372_036_854_775_808, ExpectBase: Metric},
+		{In: "-9.223372036854775808eb", ExpectBytes: -9_223_372_036_854_775_808, ExpectBase: Metric},
+		{In: "-8 EiB", ExpectBytes: -9_223_372_036_854_775_808, ExpectBase: Binary},
 
 		// Max values parse correctly, even with extreme precision.
 		{In: "9223372036854775807", ExpectBytes: 9_223_372_036_854_775_807, ExpectBase: Metric},
@@ -67,6 +71,10 @@ func TestString(t *testing.T) {
 		// Zero values
 		{In: New(0, Metric), Expect: "0 B"},
 		{In: New(0, Binary), Expect: "0 B"},
+
+		// Minimum value representable by int64: -2**62
+		{In: New(-9_223_372_036_854_775_808, Metric), Expect: "-9223372036854775808 B"},
+		{In: New(-9_223_372_036_854_775_808, Binary), Expect: "-8 EiB"},
 
 		// Maximum value representable by int64: 2**63-1
 		{In: New(9_223_372_036_854_775_807, Metric), Expect: "9223372036854775807 B"},
