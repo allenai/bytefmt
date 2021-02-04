@@ -18,7 +18,7 @@ quantities.
 - [`k8s.io/apimachinery/pkg/api/resource`](https://github.com/kubernetes/apimachinery):
   `resource.Quantity` provides exact precision, multiple standards, and
   arbitrarily large values. Being part of the larger Kubernetes API, it pulls in
-  a large set of dependencies
+  a long list of dependencies
 
 - [`github.com/inhies/go-bytesize`](https://github.com/inhies/go-bytesize):
   `bytesize.ByteSize` Supports parsing and formatting full-word units such as
