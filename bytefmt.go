@@ -25,12 +25,12 @@ func New(bytes int64, base Base) *Size {
 }
 
 // Size is a count of bytes with human-friendly unit scaling.
-//
-// Size offers control over how byte quantities are formatted through either
-// automatic or explicit scaling to a byte quantity.
 type Size struct {
 	bytes int64
-	Base  Base
+
+	// Base determines how a byte quantity is formatted. If unset it defaults to
+	// Metric, or Decimal SI prefixes.
+	Base Base
 }
 
 // IsZero returns whether a size is exactly zero bytes.
