@@ -76,19 +76,28 @@ func TestParse(t *testing.T) {
 		// Invalid values should produce errors.
 		{In: "", ExpectErr: "empty string"},
 		{In: " B", ExpectErr: "must start with a number"},
-		{In: ". B", ExpectErr: "must start with a number"},
 		{In: "9223372036854775808", ExpectErr: "value exceeds 64 bits"},
 		{In: "8.0 EiB", ExpectErr: "value exceeds 64 bits"},
 		{In: "1 tUb", ExpectErr: `"tUb" is not a valid byte quantity`},
 
-		// Missing leading or trailing digits is OK.
-		{In: ".1 kB", ExpectBytes: 100, ExpectBase: Metric},
-		{In: "1. kB", ExpectBytes: 1000, ExpectBase: Metric},
-
 		// Zero parses correctly.
 		{In: "0", ExpectBytes: 0, ExpectBase: Metric},
+		{In: "-0", ExpectBytes: 0, ExpectBase: Metric},
 		{In: "0 B", ExpectBytes: 0, ExpectBase: Metric},
 		{In: "0mib", ExpectBytes: 0, ExpectBase: Binary},
+
+		// Missing leading or trailing zeroes
+		{In: ". B", ExpectErr: "must start with a number"},
+		{In: "-. B", ExpectErr: "must start with a number"},
+		{In: ".1 kB", ExpectBytes: 100, ExpectBase: Metric},
+		{In: "-.1 kB", ExpectBytes: -100, ExpectBase: Metric},
+		{In: "1. kB", ExpectBytes: 1000, ExpectBase: Metric},
+
+		// Extra leading or trailing zeroes
+		{In: ".10000 kB", ExpectBytes: 100, ExpectBase: Metric},
+		{In: "0000.1 kB", ExpectBytes: 100, ExpectBase: Metric},
+		{In: "-0000.1 kB", ExpectBytes: -100, ExpectBase: Metric},
+		{In: "0001.0000 kB", ExpectBytes: 1000, ExpectBase: Metric},
 
 		// Min values parse correctly.
 		{In: "-9223372036854775808", ExpectBytes: math.MinInt64, ExpectBase: Metric},
@@ -115,7 +124,7 @@ func TestParse(t *testing.T) {
 			continue
 		}
 
-		if assertNoErr(t, err, "Unxpected error for %q", test.In) {
+		if !assertNoErr(t, err, "Unxpected error for %q", test.In) {
 			continue
 		}
 		assertEqual(t, test.ExpectBytes, size.Int64(), "Byte count for %q", test.In)

@@ -103,19 +103,22 @@ func parse(s string) (Size, error) {
 
 	pos, end := 0, len(s)
 
-	// Skip the sign. This is included by default.
+	// Parse the sign.
+	var negative bool
 	if len(s) != 0 && s[0] == '-' {
+		negative = true
 		pos++
 	}
 
 	// Parse the whole number part.
+	var start int
 	var whole string
-	for ; pos < end; pos++ {
+	for start = pos; pos < end; pos++ {
 		if s[pos] < '0' || s[pos] > '9' {
 			break
 		}
 	}
-	whole = s[:pos]
+	whole = s[start:pos]
 
 	// Parse the fractional number part.
 	var frac string
@@ -174,6 +177,10 @@ func parse(s string) (Size, error) {
 	} else {
 		// For whole numbers we can skip all the precision math.
 		val.Mul(&val, &scale)
+	}
+
+	if negative {
+		val.Neg(&val)
 	}
 
 	if !val.IsInt64() {
