@@ -2,9 +2,69 @@ package bytefmt
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"testing"
 )
+
+func TestCmp(t *testing.T) {
+	tests := []struct {
+		A      *Size
+		B      *Size
+		Expect int
+	}{
+		// Zeroes
+		{A: &Size{}, B: &Size{}, Expect: 0},
+		{A: New(0, Metric), B: New(0, Binary), Expect: 0},
+
+		// Different bases
+		{A: New(1024*KB, Metric), B: New(1000*KiB, Binary), Expect: 0},
+		{A: New(1000*KB, Metric), B: New(1024*KB, Binary), Expect: -1},
+		{A: New(1024*KiB, Metric), B: New(1000*KiB, Binary), Expect: 1},
+
+		// Equal and opposite
+		{A: New(-1, Metric), B: New(1, Metric), Expect: -1},
+		{A: New(1024*KiB, Metric), B: New(-1000*KiB, Metric), Expect: 1},
+
+		// Extreme values
+		{A: New(math.MaxInt64, Metric), B: New(math.MaxInt64, Metric), Expect: 0},
+		{A: New(math.MinInt64, Metric), B: New(math.MaxInt64, Metric), Expect: -1},
+		{A: New(math.MaxInt64, Metric), B: New(math.MinInt64, Metric), Expect: 1},
+	}
+
+	for _, test := range tests {
+		result := test.A.Cmp(*test.B)
+		assertEqual(t, test.Expect, result, "Comparing %v against %v", test.A, test.B)
+	}
+}
+
+func TestAdd(t *testing.T) {
+	tests := []struct {
+		A      *Size
+		B      *Size
+		Expect int64
+	}{
+		// Zeroes
+		{A: &Size{}, B: &Size{}, Expect: 0},
+		{A: New(0, Metric), B: New(0, Binary), Expect: 0},
+
+		// Different bases
+		{A: New(123, Metric), B: New(456, Binary), Expect: 579},
+
+		// Extreme values
+		{A: New(math.MinInt64, Metric), B: New(math.MaxInt64, Metric), Expect: -1},
+		{A: New(math.MaxInt64, Metric), B: New(math.MinInt64, Metric), Expect: -1},
+	}
+
+	for _, test := range tests {
+		result := New(0, Metric)
+		result.Add(*test.A)
+		assertEqual(t, test.A.Int64(), result.Int64(), "Adding %v to zero", test.A)
+
+		result.Add(*test.B)
+		assertEqual(t, test.Expect, result.Int64(), "Adding %v + %v", test.A, test.B)
+	}
+}
 
 func TestParse(t *testing.T) {
 	tests := []struct {
@@ -31,14 +91,14 @@ func TestParse(t *testing.T) {
 		{In: "0mib", ExpectBytes: 0, ExpectBase: Binary},
 
 		// Min values parse correctly.
-		{In: "-9223372036854775808", ExpectBytes: -9_223_372_036_854_775_808, ExpectBase: Metric},
-		{In: "-9.223372036854775808eb", ExpectBytes: -9_223_372_036_854_775_808, ExpectBase: Metric},
-		{In: "-8 EiB", ExpectBytes: -9_223_372_036_854_775_808, ExpectBase: Binary},
+		{In: "-9223372036854775808", ExpectBytes: math.MinInt64, ExpectBase: Metric},
+		{In: "-9.223372036854775808eb", ExpectBytes: math.MinInt64, ExpectBase: Metric},
+		{In: "-8 EiB", ExpectBytes: math.MinInt64, ExpectBase: Binary},
 
 		// Max values parse correctly, even with extreme precision.
-		{In: "9223372036854775807", ExpectBytes: 9_223_372_036_854_775_807, ExpectBase: Metric},
-		{In: "9.223372036854775807eb", ExpectBytes: 9_223_372_036_854_775_807, ExpectBase: Metric},
-		{In: "7.99999999999999999914 EiB", ExpectBytes: 9_223_372_036_854_775_807, ExpectBase: Binary},
+		{In: "9223372036854775807", ExpectBytes: math.MaxInt64, ExpectBase: Metric},
+		{In: "9.223372036854775807eb", ExpectBytes: math.MaxInt64, ExpectBase: Metric},
+		{In: "7.99999999999999999914 EiB", ExpectBytes: math.MaxInt64, ExpectBase: Binary},
 
 		// Metric and binary suffixes produce different results.
 		{In: "123.456g", ExpectBytes: 123_456_000_000, ExpectBase: Metric},
@@ -73,12 +133,12 @@ func TestString(t *testing.T) {
 		{In: New(0, Binary), Expect: "0 B"},
 
 		// Minimum value representable by int64: -2**62
-		{In: New(-9_223_372_036_854_775_808, Metric), Expect: "-9223372036854775808 B"},
-		{In: New(-9_223_372_036_854_775_808, Binary), Expect: "-8 EiB"},
+		{In: New(math.MinInt64, Metric), Expect: "-9223372036854775808 B"},
+		{In: New(math.MinInt64, Binary), Expect: "-8 EiB"},
 
 		// Maximum value representable by int64: 2**63-1
-		{In: New(9_223_372_036_854_775_807, Metric), Expect: "9223372036854775807 B"},
-		{In: New(9_223_372_036_854_775_807, Binary), Expect: "9223372036854775807 B"},
+		{In: New(math.MaxInt64, Metric), Expect: "9223372036854775807 B"},
+		{In: New(math.MaxInt64, Binary), Expect: "9223372036854775807 B"},
 
 		// Thresholds between Metric suffixes
 		{In: New(1*Byte, Metric), Expect: "1 B"},

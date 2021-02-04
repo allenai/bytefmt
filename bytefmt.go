@@ -1,6 +1,6 @@
-// Package bytefmt contains provides tools to parse, format, and manipulate byte
-// quantities. This package emphasizes accuracy over performance and implements
-// both binary and decimal International System of Units (SI) conventions.
+// Package bytefmt is a utility to parse, format, and manipulate byte quantities.
+// This package emphasizes accuracy over performance and implements both binary
+// and decimal International System of Units (SI) conventions.
 package bytefmt
 
 import (
@@ -34,16 +34,16 @@ type Size struct {
 }
 
 // IsZero returns whether a size is exactly zero bytes.
-func (s Size) IsZero() bool { return s.bytes == 0 }
+func (s *Size) IsZero() bool { return s.bytes == 0 }
 
 // Equal returns whether two sizes represent the same number of bytes.
-func (s Size) Equal(t Size) bool { return s.bytes == t.bytes }
+func (s *Size) Equal(y Size) bool { return s.Cmp(y) == 0 }
 
 // Cmp compares s and t and returns:
 //   -1 if s <  y
 //    0 if s == y
 //   +1 if s >  y
-func (s Size) Cmp(y Size) int {
+func (s *Size) Cmp(y Size) int {
 	switch {
 	case s.bytes == y.bytes:
 		return 0
@@ -58,16 +58,16 @@ func (s Size) Cmp(y Size) int {
 func (s *Size) Add(y Size) { s.bytes += y.bytes }
 
 // Sub subtracts size y from the current value.
-func (s *Size) Sub(y Size) { s.bytes += y.bytes }
+func (s *Size) Sub(y Size) { s.bytes -= y.bytes }
 
 // Neg sets the current value to -s.
-func (s *Size) Neg() { s.bytes = -1 }
+func (s *Size) Neg() { s.bytes = -s.bytes }
 
 // Sign compares s against 0 and returns:
 //   -1 if s <  0
 //    0 if s == 0
 //   +1 if s >  0
-func (s Size) Sign() int {
+func (s *Size) Sign() int {
 	return s.Cmp(Size{})
 }
 
@@ -75,7 +75,7 @@ func (s Size) Sign() int {
 func (s *Size) SetInt64(bytes int64) { s.bytes = bytes }
 
 // Int64 returns a size's representation as an absolute number of bytes.
-func (s Size) Int64() int64 { return s.bytes }
+func (s *Size) Int64() int64 { return s.bytes }
 
 // Parse converts a string representation of a byte quantity to a Size.
 // Fractional values are truncated to the nearest byte, rounding toward zero.
@@ -184,7 +184,7 @@ func parse(s string) (Size, error) {
 }
 
 // String returns the formatted quantity scaled to the largest exact base unit.
-func (s Size) String() string {
+func (s *Size) String() string {
 	mant := s.bytes
 	var exp int
 	var suffix string
