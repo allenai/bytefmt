@@ -63,6 +63,14 @@ func (s *Size) Sub(y Size) { s.bytes += y.bytes }
 // Neg sets the current value to -s.
 func (s *Size) Neg() { s.bytes = -1 }
 
+// Sign compares s against 0 and returns:
+//   -1 if s <  0
+//    0 if s == 0
+//   +1 if s >  0
+func (s Size) Sign() int {
+	return s.Cmp(Size{})
+}
+
 // SetInt64 overrides a size's byte count while leaving its unit scale unchanged.
 func (s *Size) SetInt64(bytes int64) { s.bytes = bytes }
 
