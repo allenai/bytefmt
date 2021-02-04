@@ -4,6 +4,7 @@
 package bytefmt
 
 import (
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math/big"
@@ -11,20 +12,18 @@ import (
 	"strings"
 )
 
-// FromInt64 creates a new size from a count of bytes and an optional scale.
-// See SetUnit for more detailed information about units.
-func FromInt64(i int64, u Unit) Size {
-	mustValidateUnit(u)
-	return Size{i, u}
+// New returns a new size from a count of bytes.
+func New(bytes int64, base Base) *Size {
+	return &Size{bytes, base}
 }
 
-// Size is a count of bytes with human-friendly unit representation.
+// Size is a count of bytes with human-friendly unit scaling.
 //
 // Size offers control over how byte quantities are formatted through either
 // automatic or explicit scaling to a byte quantity.
 type Size struct {
 	bytes int64
-	unit  Unit
+	Base  Base
 }
 
 // IsZero returns whether a size is exactly zero bytes.
@@ -39,29 +38,17 @@ func (s *Size) SetInt64(bytes int64) { s.bytes = bytes }
 // Int64 returns a size's representation as an absolute number of bytes.
 func (s Size) Int64() int64 { return s.bytes }
 
-// Unit returns the assigned unit size.
-func (s Size) Unit() Unit { return s.unit }
-
-// SetUnit overrides the assigned unit, or quanitity suffix.
-//
-// The values Metric and Binary will automatically scale formatted values to the
-// most appropriate unit in their respective standards.
-func (s *Size) SetUnit(u Unit) {
-	mustValidateUnit(u)
-	s.unit = u
-}
-
 // Parse converts a string representation of a byte quantity to a Size.
 // Fractional values are truncated to the nearest byte, rounding toward zero.
 //
-// Parsed values retain their unit scale, defaulting to Byte if no unit is
-// specified. Unit prefixes are permissive for metric SI units ("K" = "kB"), but
-// strict for binary SI units ("KiB"). Units may be overridden with SetUnit.
+// Parsed values retain their base format, defaulting to Metric if the suffix is
+// missing. Unit prefixes are permissive for Metric scales ("K" = "kB"), but
+// strict for Binary scales ("KiB").
 //
-//    Parse("1024")     = 1,024 B     = 1,024 bytes
-//    Parse("1024k")    = 1,024 kB    = 1,024,000 bytes
-//    Parse("1mb")      =    10 MB    = 10,000,000 bytes
-//    Parse("1.25 GiB") =  1.25 GiB   = 1,342,177,280 bytes
+//    Parse("1024")     = 1,024 B  = 1,024 bytes
+//    Parse("1024k")    = 1,024 kB = 1,024,000 bytes
+//    Parse("1.1gb")    = 1100 MB  = 1,100,000,000 bytes
+//    Parse("1.25 GiB") = 1.25 GiB = 1,342,177,280 bytes
 func Parse(s string) (Size, error) {
 	size, err := parse(s)
 	if err != nil {
@@ -70,7 +57,12 @@ func Parse(s string) (Size, error) {
 	return size, nil
 }
 
-var ten = big.NewInt(10)
+// Commonly used values; do not change.
+var (
+	ten      = big.NewInt(10)
+	tenPow3  = big.NewInt(1000)
+	twoPow10 = big.NewInt(1024)
+)
 
 func parse(s string) (Size, error) {
 	if len(s) == 0 {
@@ -113,73 +105,81 @@ func parse(s string) (Size, error) {
 	}
 	frac = strings.TrimRight(frac, "0")
 
-	// Trim optional whitespace between number and unit.
+	// Trim optional whitespace between number and unit suffix.
 	if pos < end && s[pos] == ' ' {
 		pos++
 	}
 
 	// Everything remaining must be the unit suffix.
-	unit, err := parseUnit(s[pos:end])
+	exp, base, err := parseSuffix(s[pos:end])
 	if err != nil {
 		return Size{}, err
 	}
 
 	// To avoid precision loss for large numbers, calculate size in big decimal.
-	// value = (whole * 10**len(frac) + frac) * unit / 10**len(frac)
+	// value = (whole * 10**len(frac) + frac) * scale / 10**len(frac)
 
-	var val, u big.Int
+	var val, scale big.Int
 	val.SetString(whole, 10)
-	u.SetInt64(int64(unit))
 
+	// Calculate the scalar. Base is guaranteed valid by parseSuffix.
+	scale.SetInt64(int64(exp))
+	switch base {
+	case Metric:
+		scale.Exp(tenPow3, &scale, nil)
+	case Binary:
+		scale.Exp(twoPow10, &scale, nil)
+	}
+
+	// Scale the number.
 	if len(frac) != 0 {
-		var exp, f big.Int
-		exp.SetInt64(int64(len(frac))).Exp(ten, &exp, nil)
+		var prec, f big.Int
+		prec.SetInt64(int64(len(frac))).Exp(ten, &prec, nil)
 		f.SetString(frac, 10)
-		val.Mul(&val, &exp).Add(&val, &f).Mul(&val, &u).Quo(&val, &exp)
+		val.Mul(&val, &prec).Add(&val, &f).Mul(&val, &scale).Quo(&val, &prec)
 	} else {
-		// In the common case we can skip all the above math, but we still need
-		// to use bigint to check whether the value fits in 64 bits.
-		val.Mul(&val, &u)
+		// For whole numbers we can skip all the precision math.
+		val.Mul(&val, &scale)
 	}
 
 	if !val.IsInt64() {
 		return Size{}, errors.New("value exceeds 63 bits")
 	}
 
-	return Size{bytes: val.Int64(), unit: unit}, nil
+	return Size{bytes: val.Int64(), Base: base}, nil
 }
 
-// String returns the formatted quantity with unbounded precision.
+// String returns the formatted quantity scaled to the largest exact base unit.
 func (s Size) String() string {
-	return s.Format(-1)
-}
+	mant := s.bytes
+	var exp int
+	var suffix string
 
-// Format converts a byte quantity to a string, according to the given precision.
-//
-// If the size's unit is Byte, its value is formatted exactly with no rounding,
-// ignoring precision. For other units, precision is limited to 53 significant
-// bits, or just under 10 petabytes.
-//
-// Precision sets the number of digits after the decimal, similar to the %f
-// verb. As a special case, setting precision to -1 uses the smallest number of
-// digits necessary such that Parse will return the same value.
-func (s Size) Format(prec int) string {
-	unit := inferUnit(s.bytes, s.unit)
-
-	// Special case: format byte units exactly to avoid precision loss.
-	if unit == Byte {
-		// TODO: Should this append the unit?
-		// TODO: If prec >= 0, should we append "." + strings.Repeat("0", prec)?
-		return strconv.FormatInt(s.bytes, 10)
+	switch s.Base {
+	case 0, Metric:
+		for mant >= 1000 && mant%1000 == 0 && exp < len(metricSuffixes) {
+			exp++
+			mant = mant / 1000
+		}
+		suffix = metricSuffixes[exp]
+	case Binary:
+		for mant >= 1024 && mant%1024 == 0 && exp < len(binarySuffixes) {
+			exp++
+			mant = mant / 1024
+		}
+		suffix = binarySuffixes[exp]
+	default:
+		panic("invalid base")
 	}
 
-	// We accept loss of precision over 53 significant bits from casting.
-	return strconv.FormatFloat(float64(s.bytes)/float64(unit), 'f', prec, 64) + " " + suffixes[unit]
+	result := make([]byte, 0, 20) // Pre-allocate a size most numbers would fit within.
+	result = strconv.AppendInt(result, mant, 10)
+	result = append(result, ' ')
+	result = append(result, suffix...)
+	return string(result)
 }
 
-// MarshalJSON implements the json.Marshaler interface. It does not guarantee
-// full precision. Callers requiring exact values should call s.SetUnit(Byte)
-// before marshaling.
+// MarshalJSON implements the json.Marshaler interface.
 func (s Size) MarshalJSON() ([]byte, error) {
 	return []byte(strconv.Quote(s.String())), nil
 }
@@ -207,11 +207,16 @@ func (s *Size) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
-// Scan implements the sql.Scanner interface for database deserialization.
+// Value implements the sql.Valuer interface. It always produces a string.
+func (s Size) Value() (driver.Value, error) {
+	return s.String(), nil
+}
+
+// Scan implements the sql.Scanner interface. It accepts numeric and string values.
 func (s *Size) Scan(value interface{}) error {
 	switch v := value.(type) {
 	case int64:
-		*s = FromInt64(v, Metric)
+		*s = *New(v, Metric)
 		return nil
 
 	case string:
