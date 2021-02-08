@@ -88,17 +88,17 @@ func (s *Size) Int64() int64 { return s.bytes }
 //    Parse("1024k")    = 1,024 kB = 1,024,000 bytes
 //    Parse("1.1gb")    = 1100 MB  = 1,100,000,000 bytes
 //    Parse("1.25 GiB") = 1.25 GiB = 1,342,177,280 bytes
-func Parse(s string) (Size, error) {
+func Parse(s string) (*Size, error) {
 	size, err := parse(s)
 	if err != nil {
-		return Size{}, fmt.Errorf("can't convert %q to size: %w", s, err)
+		return nil, fmt.Errorf("can't convert %q to size: %w", s, err)
 	}
 	return size, nil
 }
 
-func parse(s string) (Size, error) {
+func parse(s string) (*Size, error) {
 	if len(s) == 0 {
-		return Size{}, errors.New("empty string")
+		return nil, errors.New("empty string")
 	}
 
 	pos, end := 0, len(s)
@@ -135,7 +135,7 @@ func parse(s string) (Size, error) {
 
 	// Normalize whole and fractional parts.
 	if len(whole) == 0 && len(frac) == 0 {
-		return Size{}, errors.New("must start with a number")
+		return nil, errors.New("must start with a number")
 	}
 	if len(whole) == 0 {
 		whole = "0"
@@ -150,7 +150,7 @@ func parse(s string) (Size, error) {
 	// Everything remaining must be the unit suffix.
 	exp, base, err := parseSuffix(s[pos:end])
 	if err != nil {
-		return Size{}, err
+		return nil, err
 	}
 
 	// To avoid precision loss for large numbers, calculate size in big decimal.
@@ -184,10 +184,10 @@ func parse(s string) (Size, error) {
 	}
 
 	if !val.IsInt64() {
-		return Size{}, errors.New("value exceeds 64 bits")
+		return nil, errors.New("value exceeds 64 bits")
 	}
 
-	return Size{bytes: val.Int64(), Base: base}, nil
+	return &Size{bytes: val.Int64(), Base: base}, nil
 }
 
 // String returns the formatted quantity scaled to the largest exact base unit.
@@ -220,6 +220,20 @@ func (s *Size) String() string {
 	return string(result)
 }
 
+// MarshalText implements the encoding.TextMarshaler interface.
+func (s Size) MarshalText() ([]byte, error) {
+	return []byte(s.String()), nil
+}
+
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
+func (s *Size) UnmarshalText(value []byte) error {
+	size, err := Parse(string(value))
+	if size != nil {
+		*s = *size
+	}
+	return err
+}
+
 // MarshalJSON implements the json.Marshaler interface.
 func (s Size) MarshalJSON() ([]byte, error) {
 	return []byte(strconv.Quote(s.String())), nil
@@ -241,11 +255,10 @@ func (s *Size) UnmarshalJSON(value []byte) error {
 	}
 
 	size, err := Parse(str)
-	*s = size
-	if err != nil {
-		return fmt.Errorf("can't decode %q as bytefmt.Size: %w", str, err)
+	if size != nil {
+		*s = *size
 	}
-	return nil
+	return err
 }
 
 // Value implements the sql.Valuer interface. It always produces a string.
@@ -261,13 +274,17 @@ func (s *Size) Scan(value interface{}) error {
 		return nil
 
 	case string:
-		var err error
-		*s, err = Parse(v)
+		size, err := Parse(v)
+		if size != nil {
+			*s = *size
+		}
 		return err
 
 	case []byte:
-		var err error
-		*s, err = Parse(string(v))
+		size, err := Parse(string(v))
+		if size != nil {
+			*s = *size
+		}
 		return err
 
 	default: // Interpret as a string.
