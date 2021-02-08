@@ -228,11 +228,10 @@ func (s Size) MarshalText() ([]byte, error) {
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 func (s *Size) UnmarshalText(value []byte) error {
 	size, err := Parse(string(value))
-	if err != nil {
-		return err
+	if size != nil {
+		*s = *size
 	}
-	*s = *size
-	return nil
+	return err
 }
 
 // MarshalJSON implements the json.Marshaler interface.
@@ -256,11 +255,10 @@ func (s *Size) UnmarshalJSON(value []byte) error {
 	}
 
 	size, err := Parse(str)
-	if err != nil {
-		return err
+	if size != nil {
+		*s = *size
 	}
-	*s = *size
-	return nil
+	return err
 }
 
 // Value implements the sql.Valuer interface. It always produces a string.
