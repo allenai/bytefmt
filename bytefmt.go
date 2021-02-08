@@ -93,12 +93,12 @@ func Parse(s string) (*Size, error) {
 	if err != nil {
 		return nil, fmt.Errorf("can't convert %q to size: %w", s, err)
 	}
-	return &size, nil
+	return size, nil
 }
 
-func parse(s string) (Size, error) {
+func parse(s string) (*Size, error) {
 	if len(s) == 0 {
-		return Size{}, errors.New("empty string")
+		return nil, errors.New("empty string")
 	}
 
 	pos, end := 0, len(s)
@@ -135,7 +135,7 @@ func parse(s string) (Size, error) {
 
 	// Normalize whole and fractional parts.
 	if len(whole) == 0 && len(frac) == 0 {
-		return Size{}, errors.New("must start with a number")
+		return nil, errors.New("must start with a number")
 	}
 	if len(whole) == 0 {
 		whole = "0"
@@ -150,7 +150,7 @@ func parse(s string) (Size, error) {
 	// Everything remaining must be the unit suffix.
 	exp, base, err := parseSuffix(s[pos:end])
 	if err != nil {
-		return Size{}, err
+		return nil, err
 	}
 
 	// To avoid precision loss for large numbers, calculate size in big decimal.
@@ -184,10 +184,10 @@ func parse(s string) (Size, error) {
 	}
 
 	if !val.IsInt64() {
-		return Size{}, errors.New("value exceeds 64 bits")
+		return nil, errors.New("value exceeds 64 bits")
 	}
 
-	return Size{bytes: val.Int64(), Base: base}, nil
+	return &Size{bytes: val.Int64(), Base: base}, nil
 }
 
 // String returns the formatted quantity scaled to the largest exact base unit.
