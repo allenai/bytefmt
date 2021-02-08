@@ -277,14 +277,14 @@ func (s *Size) Scan(value interface{}) error {
 
 	case string:
 		size, err := Parse(v)
-		if s != nil {
+		if size != nil {
 			*s = *size
 		}
 		return err
 
 	case []byte:
 		size, err := Parse(string(v))
-		if s != nil {
+		if size != nil {
 			*s = *size
 		}
 		return err
