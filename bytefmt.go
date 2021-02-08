@@ -88,12 +88,12 @@ func (s *Size) Int64() int64 { return s.bytes }
 //    Parse("1024k")    = 1,024 kB = 1,024,000 bytes
 //    Parse("1.1gb")    = 1100 MB  = 1,100,000,000 bytes
 //    Parse("1.25 GiB") = 1.25 GiB = 1,342,177,280 bytes
-func Parse(s string) (Size, error) {
+func Parse(s string) (*Size, error) {
 	size, err := parse(s)
 	if err != nil {
-		return Size{}, fmt.Errorf("can't convert %q to size: %w", s, err)
+		return nil, fmt.Errorf("can't convert %q to size: %w", s, err)
 	}
-	return size, nil
+	return &size, nil
 }
 
 func parse(s string) (Size, error) {
@@ -228,10 +228,10 @@ func (s Size) MarshalText() ([]byte, error) {
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 func (s *Size) UnmarshalText(value []byte) error {
 	size, err := Parse(string(value))
-	*s = size
 	if err != nil {
-		return fmt.Errorf("can't decode %q as bytefmt.Size: %w", string(value), err)
+		return err
 	}
+	*s = *size
 	return nil
 }
 
@@ -256,10 +256,10 @@ func (s *Size) UnmarshalJSON(value []byte) error {
 	}
 
 	size, err := Parse(str)
-	*s = size
 	if err != nil {
-		return fmt.Errorf("can't decode %q as bytefmt.Size: %w", str, err)
+		return err
 	}
+	*s = *size
 	return nil
 }
 
@@ -276,13 +276,17 @@ func (s *Size) Scan(value interface{}) error {
 		return nil
 
 	case string:
-		var err error
-		*s, err = Parse(v)
+		size, err := Parse(v)
+		if s != nil {
+			*s = *size
+		}
 		return err
 
 	case []byte:
-		var err error
-		*s, err = Parse(string(v))
+		size, err := Parse(string(v))
+		if s != nil {
+			*s = *size
+		}
 		return err
 
 	default: // Interpret as a string.
