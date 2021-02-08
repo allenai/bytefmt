@@ -220,6 +220,21 @@ func (s *Size) String() string {
 	return string(result)
 }
 
+// MarshalText implements the encoding.TextMarshaler interface.
+func (s Size) MarshalText() ([]byte, error) {
+	return []byte(s.String()), nil
+}
+
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
+func (s *Size) UnmarshalText(value []byte) error {
+	size, err := Parse(string(value))
+	*s = size
+	if err != nil {
+		return fmt.Errorf("can't decode %q as bytefmt.Size: %w", string(value), err)
+	}
+	return nil
+}
+
 // MarshalJSON implements the json.Marshaler interface.
 func (s Size) MarshalJSON() ([]byte, error) {
 	return []byte(strconv.Quote(s.String())), nil
