@@ -291,3 +291,45 @@ func (s *Size) Scan(value interface{}) error {
 		return fmt.Errorf("could not convert value '%+v' of type '%T' to bytefmt.Size", value, value)
 	}
 }
+
+// NullSize is a nullable Size for nullable values in a database.
+type NullSize struct {
+	Size  Size
+	Valid bool
+}
+
+// Value implements the driver.Valuer interface.
+func (s NullSize) Value() (driver.Value, error) {
+	if !s.Valid {
+		return nil, nil
+	}
+	return s.Size.Value()
+}
+
+// Scan implements the sql.Scanner interface.
+func (s *NullSize) Scan(value interface{}) error {
+	if value == nil {
+		s.Valid = false
+		return nil
+	}
+	s.Valid = true
+	return s.Size.Scan(value)
+}
+
+// MarshalJSON implements the json.Marshaler interface.
+func (s NullSize) MarshalJSON() ([]byte, error) {
+	if !s.Valid {
+		return []byte("null"), nil
+	}
+	return s.Size.MarshalJSON()
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (s *NullSize) UnmarshalJSON(value []byte) error {
+	if string(value) == "null" {
+		s.Valid = false
+		return nil
+	}
+	s.Valid = true
+	return s.Size.UnmarshalJSON(value)
+}
