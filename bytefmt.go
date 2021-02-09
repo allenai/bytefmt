@@ -292,7 +292,7 @@ func (s *Size) Scan(value interface{}) error {
 	}
 }
 
-// NullSize is a nullable Size for nullable values in a database.
+// NullSize is a nullable representation of Size.
 type NullSize struct {
 	Size  Size
 	Valid bool
