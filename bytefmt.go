@@ -34,10 +34,10 @@ type Size struct {
 }
 
 // IsZero returns whether a size is exactly zero bytes.
-func (s *Size) IsZero() bool { return s.bytes == 0 }
+func (s Size) IsZero() bool { return s.bytes == 0 }
 
 // Equal returns whether two sizes represent the same number of bytes.
-func (s *Size) Equal(y Size) bool { return s.Cmp(y) == 0 }
+func (s Size) Equal(y Size) bool { return s.Cmp(y) == 0 }
 
 // Cmp compares s and t and returns:
 //   -1 if s <  y
@@ -67,7 +67,7 @@ func (s *Size) Neg() { s.bytes = -s.bytes }
 //   -1 if s <  0
 //    0 if s == 0
 //   +1 if s >  0
-func (s *Size) Sign() int {
+func (s Size) Sign() int {
 	return s.Cmp(Size{})
 }
 
@@ -75,7 +75,7 @@ func (s *Size) Sign() int {
 func (s *Size) SetInt64(bytes int64) { s.bytes = bytes }
 
 // Int64 returns a size's representation as an absolute number of bytes.
-func (s *Size) Int64() int64 { return s.bytes }
+func (s Size) Int64() int64 { return s.bytes }
 
 // Parse converts a string representation of a byte quantity to a Size.
 // Fractional values are truncated to the nearest byte, rounding toward zero.
@@ -191,7 +191,7 @@ func parse(s string) (*Size, error) {
 }
 
 // String returns the formatted quantity scaled to the largest exact base unit.
-func (s *Size) String() string {
+func (s Size) String() string {
 	mant := s.bytes
 	var exp int
 	var suffix string
