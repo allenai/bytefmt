@@ -198,13 +198,13 @@ func (s Size) String() string {
 
 	switch s.Base {
 	case 0, Metric:
-		for (mant >= 1000 || mant <= -1000) && mant%1000 == 0 && exp < len(metricSuffixes) {
+		for mant != 0 && mant%1000 == 0 && exp < len(metricSuffixes) {
 			exp++
 			mant = mant / 1000
 		}
 		suffix = metricSuffixes[exp]
 	case Binary:
-		for (mant >= 1024 || mant <= -1024) && mant%1024 == 0 && exp < len(binarySuffixes) {
+		for mant != 0 && mant%1024 == 0 && exp < len(binarySuffixes) {
 			exp++
 			mant = mant / 1024
 		}
