@@ -204,7 +204,7 @@ func (s Size) String() string {
 		}
 		suffix = metricSuffixes[exp]
 	case Binary:
-		for (mant >= 1000 || mant <= -1000) && mant%1024 == 0 && exp < len(binarySuffixes) {
+		for (mant >= 1024 || mant <= -1024) && mant%1024 == 0 && exp < len(binarySuffixes) {
 			exp++
 			mant = mant / 1024
 		}
@@ -215,6 +215,42 @@ func (s Size) String() string {
 
 	result := make([]byte, 0, 20) // Pre-allocate a size most numbers would fit within.
 	result = strconv.AppendInt(result, mant, 10)
+	result = append(result, ' ')
+	result = append(result, suffix...)
+	return string(result)
+}
+
+// Format the quantity, rounding to 4 signficant figures.
+//
+// The largest base unit smaller than the quantity is used.
+// For example, 999 bytes is formatted as "999 B" and 1000 bytes is formatted as "1 kB".
+//
+// Trailing zeros are removed.
+func (s Size) Format() string {
+	mant := float64(s.bytes)
+	var exp int
+	var suffix string
+
+	switch s.Base {
+	case 0, Metric:
+		for (mant >= 1000 || mant <= -1000) && exp < len(metricSuffixes) {
+			exp++
+			mant = mant / 1000
+		}
+		suffix = metricSuffixes[exp]
+	case Binary:
+		for (mant >= 1024 || mant <= -1024) && exp < len(binarySuffixes) {
+			exp++
+			mant = mant / 1024
+		}
+		suffix = binarySuffixes[exp]
+	default:
+		panic("invalid base")
+	}
+
+	// Using 4 signficant figures, the longest string is 9 characters e.g. "1.111 KiB".
+	result := make([]byte, 0, 9)
+	result = strconv.AppendFloat(result, mant, 'g', 4, 64)
 	result = append(result, ' ')
 	result = append(result, suffix...)
 	return string(result)
