@@ -220,13 +220,15 @@ func (s Size) String() string {
 	return string(result)
 }
 
-// Format the quantity, rounding to 4 signficant figures.
+// Format the quantity, rounding to 'precision' signficant figures.
+//
+// If precision is negative, the quantity is formatted exactly with no rounding.
 //
 // The largest base unit smaller than the quantity is used.
 // For example, 999 bytes is formatted as "999 B" and 1000 bytes is formatted as "1 kB".
 //
 // Trailing zeros are removed.
-func (s Size) Format() string {
+func (s Size) Format(precision int) string {
 	mant := float64(s.bytes)
 	var exp int
 	var suffix string
@@ -250,7 +252,7 @@ func (s Size) Format() string {
 
 	// Using 4 signficant figures, the longest string is 9 characters e.g. "1.111 KiB".
 	result := make([]byte, 0, 9)
-	result = strconv.AppendFloat(result, mant, 'g', 4, 64)
+	result = strconv.AppendFloat(result, mant, 'g', precision, 64)
 	result = append(result, ' ')
 	result = append(result, suffix...)
 	return string(result)
