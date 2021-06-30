@@ -230,40 +230,31 @@ func (s Size) String() string {
 //
 // Trailing zeros are removed.
 func (s Size) Format(precision int) string {
-	mant := float64(s.bytes)
-	var exp int
-	var suffix string
-
+	var base float64
+	var suffixes [7]string
 	switch s.Base {
 	case 0, Metric:
-		if s.bytes != 0 {
-			exp = int(math.Log(math.Abs(mant)) / math.Log(1000))
-		}
-		if exp > len(metricSuffixes) {
-			exp = len(metricSuffixes)
-		}
-		mant = mant / (math.Pow(1000, float64(exp)))
-
-		for (mant >= 1000 || mant <= -1000) && exp < len(metricSuffixes) {
-			exp++
-			mant = mant / 1000
-		}
-		suffix = metricSuffixes[exp]
+		base = 1000
+		suffixes = metricSuffixes
 	case Binary:
-		for (mant >= 1024 || mant <= -1024) && exp < len(binarySuffixes) {
-			exp++
-			mant = mant / 1024
-		}
-		suffix = binarySuffixes[exp]
+		base = 1024
+		suffixes = binarySuffixes
 	default:
 		panic("invalid base")
 	}
 
-	// Using 4 signficant figures, the longest string is 9 characters e.g. "1.111 KiB".
-	result := make([]byte, 0, 9)
+	mant := float64(s.bytes)
+	var exp float64
+	if mant != 0 {
+		exp = math.Floor(math.Log(math.Abs(mant)) / math.Log(base))
+		exp = math.Min(exp, float64(len(suffixes)))
+	}
+	mant = mant / math.Pow(base, exp)
+
+	result := make([]byte, 0, 20) // Pre-allocate a size most numbers would fit within.
 	result = strconv.AppendFloat(result, mant, 'g', precision, 64)
 	result = append(result, ' ')
-	result = append(result, suffix...)
+	result = append(result, suffixes[int(exp)]...)
 	return string(result)
 }
 
