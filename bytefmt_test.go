@@ -190,131 +190,148 @@ func TestString(t *testing.T) {
 func TestFormat(t *testing.T) {
 	tests := []struct {
 		In     *Size
-		Prec   int
+		Format string
 		Expect string
 	}{
 		// Zero values
-		{In: New(0, Metric), Prec: 4, Expect: "0 B"},
-		{In: New(0, Binary), Prec: 4, Expect: "0 B"},
+		{In: New(0, Metric), Format: "%v", Expect: "0 B"},
+		{In: New(0, Binary), Format: "%v", Expect: "0 B"},
 
 		// Minimum value representable by int64: -2**62
-		{In: New(math.MinInt64, Metric), Prec: -1, Expect: "-9.223372036854776 EB"},
-		{In: New(math.MinInt64, Binary), Prec: -1, Expect: "-8 EiB"},
+		{In: New(math.MinInt64, Metric), Format: "%g", Expect: "-9.223372036854776 EB"},
+		{In: New(math.MinInt64, Binary), Format: "%g", Expect: "-8 EiB"},
 
 		// Maximum value representable by int64: 2**63-1
-		{In: New(math.MaxInt64, Metric), Prec: -1, Expect: "9.223372036854776 EB"},
-		{In: New(math.MaxInt64, Binary), Prec: -1, Expect: "8 EiB"},
+		{In: New(math.MaxInt64, Metric), Format: "%g", Expect: "9.223372036854776 EB"},
+		{In: New(math.MaxInt64, Binary), Format: "%g", Expect: "8 EiB"},
 
 		// Thresholds between Metric suffixes
-		{In: New(1*Byte, Metric), Prec: 4, Expect: "1 B"},
-		{In: New(999*Byte, Metric), Prec: 4, Expect: "999 B"},
-		{In: New(1*KB, Metric), Prec: 4, Expect: "1 kB"},
-		{In: New(999*KB, Metric), Prec: 4, Expect: "999 kB"},
-		{In: New(1*MB, Metric), Prec: 4, Expect: "1 MB"},
-		{In: New(999*MB, Metric), Prec: 4, Expect: "999 MB"},
-		{In: New(1*GB, Metric), Prec: 4, Expect: "1 GB"},
-		{In: New(999*GB, Metric), Prec: 4, Expect: "999 GB"},
-		{In: New(1*TB, Metric), Prec: 4, Expect: "1 TB"},
-		{In: New(999*TB, Metric), Prec: 4, Expect: "999 TB"},
-		{In: New(1*PB, Metric), Prec: 4, Expect: "1 PB"},
-		{In: New(999*PB, Metric), Prec: 4, Expect: "999 PB"},
-		{In: New(1000*PB, Metric), Prec: 4, Expect: "1 EB"},
+		{In: New(1*Byte, Metric), Format: "%v", Expect: "1 B"},
+		{In: New(999*Byte, Metric), Format: "%v", Expect: "999 B"},
+		{In: New(1*KB, Metric), Format: "%v", Expect: "1 kB"},
+		{In: New(999*KB, Metric), Format: "%v", Expect: "999 kB"},
+		{In: New(1*MB, Metric), Format: "%v", Expect: "1 MB"},
+		{In: New(999*MB, Metric), Format: "%v", Expect: "999 MB"},
+		{In: New(1*GB, Metric), Format: "%v", Expect: "1 GB"},
+		{In: New(999*GB, Metric), Format: "%v", Expect: "999 GB"},
+		{In: New(1*TB, Metric), Format: "%v", Expect: "1 TB"},
+		{In: New(999*TB, Metric), Format: "%v", Expect: "999 TB"},
+		{In: New(1*PB, Metric), Format: "%v", Expect: "1 PB"},
+		{In: New(999*PB, Metric), Format: "%v", Expect: "999 PB"},
+		{In: New(1000*PB, Metric), Format: "%v", Expect: "1 EB"},
 
 		// Thresholds between Binary suffixes
-		{In: New(1*Byte, Binary), Prec: 4, Expect: "1 B"},
-		{In: New(1023*Byte, Binary), Prec: 4, Expect: "1023 B"},
-		{In: New(1*KiB, Binary), Prec: 4, Expect: "1 KiB"},
-		{In: New(1023*KiB, Binary), Prec: 4, Expect: "1023 KiB"},
-		{In: New(1*MiB, Binary), Prec: 4, Expect: "1 MiB"},
-		{In: New(1023*MiB, Binary), Prec: 4, Expect: "1023 MiB"},
-		{In: New(1*GiB, Binary), Prec: 4, Expect: "1 GiB"},
-		{In: New(1023*GiB, Binary), Prec: 4, Expect: "1023 GiB"},
-		{In: New(1*TiB, Binary), Prec: 4, Expect: "1 TiB"},
-		{In: New(1023*TiB, Binary), Prec: 4, Expect: "1023 TiB"},
-		{In: New(1*PiB, Binary), Prec: 4, Expect: "1 PiB"},
-		{In: New(1023*PiB, Binary), Prec: 4, Expect: "1023 PiB"},
-		{In: New(1024*PiB, Binary), Prec: 4, Expect: "1 EiB"},
+		{In: New(1*Byte, Binary), Format: "%v", Expect: "1 B"},
+		{In: New(1023*Byte, Binary), Format: "%v", Expect: "1023 B"},
+		{In: New(1*KiB, Binary), Format: "%v", Expect: "1 KiB"},
+		{In: New(1023*KiB, Binary), Format: "%v", Expect: "1023 KiB"},
+		{In: New(1*MiB, Binary), Format: "%v", Expect: "1 MiB"},
+		{In: New(1023*MiB, Binary), Format: "%v", Expect: "1023 MiB"},
+		{In: New(1*GiB, Binary), Format: "%v", Expect: "1 GiB"},
+		{In: New(1023*GiB, Binary), Format: "%v", Expect: "1023 GiB"},
+		{In: New(1*TiB, Binary), Format: "%v", Expect: "1 TiB"},
+		{In: New(1023*TiB, Binary), Format: "%v", Expect: "1023 TiB"},
+		{In: New(1*PiB, Binary), Format: "%v", Expect: "1 PiB"},
+		{In: New(1023*PiB, Binary), Format: "%v", Expect: "1023 PiB"},
+		{In: New(1024*PiB, Binary), Format: "%v", Expect: "1 EiB"},
 
 		// Loss of precision.
-		{In: New(1001*Byte, Metric), Prec: 4, Expect: "1.001 kB"},
-		{In: New(1025*Byte, Binary), Prec: 4, Expect: "1.001 KiB"},
-		{In: New(123456*Byte, Metric), Prec: 4, Expect: "123.5 kB"},
-		{In: New(123456*Byte, Binary), Prec: 4, Expect: "120.6 KiB"},
-		{In: New(1500*Byte, Metric), Prec: 4, Expect: "1.5 kB"},
-		{In: New(1501*Byte, Metric), Prec: 4, Expect: "1.501 kB"},
-		{In: New(1499*Byte, Metric), Prec: 4, Expect: "1.499 kB"},
+		{In: New(1001*Byte, Metric), Format: "%v", Expect: "1.001 kB"},
+		{In: New(1025*Byte, Binary), Format: "%v", Expect: "1.001 KiB"},
+		{In: New(123456*Byte, Metric), Format: "%v", Expect: "123.5 kB"},
+		{In: New(123456*Byte, Binary), Format: "%v", Expect: "120.6 KiB"},
+		{In: New(1500*Byte, Metric), Format: "%v", Expect: "1.5 kB"},
+		{In: New(1501*Byte, Metric), Format: "%v", Expect: "1.501 kB"},
+		{In: New(1499*Byte, Metric), Format: "%v", Expect: "1.499 kB"},
 
 		// Rounding with Metric suffixes.
-		{In: New(14995*Byte, Metric), Prec: 4, Expect: "14.99 kB"},
-		{In: New(14996*Byte, Metric), Prec: 4, Expect: "15 kB"},
-		{In: New(15000*Byte, Metric), Prec: 4, Expect: "15 kB"},
-		{In: New(15004*Byte, Metric), Prec: 4, Expect: "15 kB"},
-		{In: New(15005*Byte, Metric), Prec: 4, Expect: "15.01 kB"},
+		{In: New(14995*Byte, Metric), Format: "%v", Expect: "14.99 kB"},
+		{In: New(14996*Byte, Metric), Format: "%v", Expect: "15 kB"},
+		{In: New(15000*Byte, Metric), Format: "%v", Expect: "15 kB"},
+		{In: New(15004*Byte, Metric), Format: "%v", Expect: "15 kB"},
+		{In: New(15005*Byte, Metric), Format: "%v", Expect: "15.01 kB"},
 
 		// Rounding with Binary suffixes.
-		{In: New(16378*Byte, Binary), Prec: 4, Expect: "15.99 KiB"},
-		{In: New(16379*Byte, Binary), Prec: 4, Expect: "16 KiB"},
-		{In: New(16384*Byte, Binary), Prec: 4, Expect: "16 KiB"},
-		{In: New(16389*Byte, Binary), Prec: 4, Expect: "16 KiB"},
-		{In: New(16390*Byte, Binary), Prec: 4, Expect: "16.01 KiB"},
+		{In: New(16378*Byte, Binary), Format: "%v", Expect: "15.99 KiB"},
+		{In: New(16379*Byte, Binary), Format: "%v", Expect: "16 KiB"},
+		{In: New(16384*Byte, Binary), Format: "%v", Expect: "16 KiB"},
+		{In: New(16389*Byte, Binary), Format: "%v", Expect: "16 KiB"},
+		{In: New(16390*Byte, Binary), Format: "%v", Expect: "16.01 KiB"},
 
 		// 4 significant figures with Metric suffixes.
-		{In: New(1*Byte, Metric), Prec: 4, Expect: "1 B"},
-		{In: New(11*Byte, Metric), Prec: 4, Expect: "11 B"},
-		{In: New(111*Byte, Metric), Prec: 4, Expect: "111 B"},
-		{In: New(1111*Byte, Metric), Prec: 4, Expect: "1.111 kB"},
-		{In: New(11111*Byte, Metric), Prec: 4, Expect: "11.11 kB"},
-		{In: New(111111*Byte, Metric), Prec: 4, Expect: "111.1 kB"},
-		{In: New(1111111*Byte, Metric), Prec: 4, Expect: "1.111 MB"},
-		{In: New(11111111*Byte, Metric), Prec: 4, Expect: "11.11 MB"},
-		{In: New(111111111*Byte, Metric), Prec: 4, Expect: "111.1 MB"},
-		{In: New(1111111111*Byte, Metric), Prec: 4, Expect: "1.111 GB"},
-		{In: New(11111111111*Byte, Metric), Prec: 4, Expect: "11.11 GB"},
-		{In: New(111111111111*Byte, Metric), Prec: 4, Expect: "111.1 GB"},
-		{In: New(1111111111111*Byte, Metric), Prec: 4, Expect: "1.111 TB"},
-		{In: New(11111111111111*Byte, Metric), Prec: 4, Expect: "11.11 TB"},
-		{In: New(111111111111111*Byte, Metric), Prec: 4, Expect: "111.1 TB"},
-		{In: New(1111111111111111*Byte, Metric), Prec: 4, Expect: "1.111 PB"},
-		{In: New(11111111111111111*Byte, Metric), Prec: 4, Expect: "11.11 PB"},
-		{In: New(111111111111111111*Byte, Metric), Prec: 4, Expect: "111.1 PB"},
-		{In: New(1111111111111111111*Byte, Metric), Prec: 4, Expect: "1.111 EB"},
+		{In: New(1*Byte, Metric), Format: "%v", Expect: "1 B"},
+		{In: New(11*Byte, Metric), Format: "%v", Expect: "11 B"},
+		{In: New(111*Byte, Metric), Format: "%v", Expect: "111 B"},
+		{In: New(1111*Byte, Metric), Format: "%v", Expect: "1.111 kB"},
+		{In: New(11111*Byte, Metric), Format: "%v", Expect: "11.11 kB"},
+		{In: New(111111*Byte, Metric), Format: "%v", Expect: "111.1 kB"},
+		{In: New(1111111*Byte, Metric), Format: "%v", Expect: "1.111 MB"},
+		{In: New(11111111*Byte, Metric), Format: "%v", Expect: "11.11 MB"},
+		{In: New(111111111*Byte, Metric), Format: "%v", Expect: "111.1 MB"},
+		{In: New(1111111111*Byte, Metric), Format: "%v", Expect: "1.111 GB"},
+		{In: New(11111111111*Byte, Metric), Format: "%v", Expect: "11.11 GB"},
+		{In: New(111111111111*Byte, Metric), Format: "%v", Expect: "111.1 GB"},
+		{In: New(1111111111111*Byte, Metric), Format: "%v", Expect: "1.111 TB"},
+		{In: New(11111111111111*Byte, Metric), Format: "%v", Expect: "11.11 TB"},
+		{In: New(111111111111111*Byte, Metric), Format: "%v", Expect: "111.1 TB"},
+		{In: New(1111111111111111*Byte, Metric), Format: "%v", Expect: "1.111 PB"},
+		{In: New(11111111111111111*Byte, Metric), Format: "%v", Expect: "11.11 PB"},
+		{In: New(111111111111111111*Byte, Metric), Format: "%v", Expect: "111.1 PB"},
+		{In: New(1111111111111111111*Byte, Metric), Format: "%v", Expect: "1.111 EB"},
 
 		// 4 significant figures with Binary suffixes.
-		{In: New(1*Byte, Binary), Prec: 4, Expect: "1 B"},
-		{In: New(11*Byte, Binary), Prec: 4, Expect: "11 B"},
-		{In: New(111*Byte, Binary), Prec: 4, Expect: "111 B"},
-		{In: New(1111*Byte, Binary), Prec: 4, Expect: "1.085 KiB"},
-		{In: New(11111*Byte, Binary), Prec: 4, Expect: "10.85 KiB"},
-		{In: New(111111*Byte, Binary), Prec: 4, Expect: "108.5 KiB"},
-		{In: New(1111111*Byte, Binary), Prec: 4, Expect: "1.06 MiB"},
-		{In: New(11111111*Byte, Binary), Prec: 4, Expect: "10.6 MiB"},
-		{In: New(111111111*Byte, Binary), Prec: 4, Expect: "106 MiB"},
-		{In: New(1111111111*Byte, Binary), Prec: 4, Expect: "1.035 GiB"},
-		{In: New(11111111111*Byte, Binary), Prec: 4, Expect: "10.35 GiB"},
-		{In: New(111111111111*Byte, Binary), Prec: 4, Expect: "103.5 GiB"},
-		{In: New(1111111111111*Byte, Binary), Prec: 4, Expect: "1.011 TiB"},
-		{In: New(11111111111111*Byte, Binary), Prec: 4, Expect: "10.11 TiB"},
-		{In: New(111111111111111*Byte, Binary), Prec: 4, Expect: "101.1 TiB"},
-		{In: New(1111111111111111*Byte, Binary), Prec: 4, Expect: "1011 TiB"},
-		{In: New(11111111111111111*Byte, Binary), Prec: 4, Expect: "9.869 PiB"},
-		{In: New(111111111111111111*Byte, Binary), Prec: 4, Expect: "98.69 PiB"},
-		{In: New(1111111111111111111*Byte, Binary), Prec: 4, Expect: "986.9 PiB"},
+		{In: New(1*Byte, Binary), Format: "%v", Expect: "1 B"},
+		{In: New(11*Byte, Binary), Format: "%v", Expect: "11 B"},
+		{In: New(111*Byte, Binary), Format: "%v", Expect: "111 B"},
+		{In: New(1111*Byte, Binary), Format: "%v", Expect: "1.085 KiB"},
+		{In: New(11111*Byte, Binary), Format: "%v", Expect: "10.85 KiB"},
+		{In: New(111111*Byte, Binary), Format: "%v", Expect: "108.5 KiB"},
+		{In: New(1111111*Byte, Binary), Format: "%v", Expect: "1.06 MiB"},
+		{In: New(11111111*Byte, Binary), Format: "%v", Expect: "10.6 MiB"},
+		{In: New(111111111*Byte, Binary), Format: "%v", Expect: "106 MiB"},
+		{In: New(1111111111*Byte, Binary), Format: "%v", Expect: "1.035 GiB"},
+		{In: New(11111111111*Byte, Binary), Format: "%v", Expect: "10.35 GiB"},
+		{In: New(111111111111*Byte, Binary), Format: "%v", Expect: "103.5 GiB"},
+		{In: New(1111111111111*Byte, Binary), Format: "%v", Expect: "1.011 TiB"},
+		{In: New(11111111111111*Byte, Binary), Format: "%v", Expect: "10.11 TiB"},
+		{In: New(111111111111111*Byte, Binary), Format: "%v", Expect: "101.1 TiB"},
+		{In: New(1111111111111111*Byte, Binary), Format: "%v", Expect: "1011 TiB"},
+		{In: New(11111111111111111*Byte, Binary), Format: "%v", Expect: "9.869 PiB"},
+		{In: New(111111111111111111*Byte, Binary), Format: "%v", Expect: "98.69 PiB"},
+		{In: New(1111111111111111111*Byte, Binary), Format: "%v", Expect: "986.9 PiB"},
 
-		// Precision.
-		{In: New(1111*Byte, Metric), Prec: -2, Expect: "1.111 kB"},
-		{In: New(1111*Byte, Metric), Prec: -1, Expect: "1.111 kB"},
-		{In: New(1111*Byte, Metric), Prec: 0, Expect: "1 kB"},
-		{In: New(1111*Byte, Metric), Prec: 1, Expect: "1 kB"},
-		{In: New(1111*Byte, Metric), Prec: 2, Expect: "1.1 kB"},
-		{In: New(1111*Byte, Metric), Prec: 3, Expect: "1.11 kB"},
-		{In: New(1111*Byte, Metric), Prec: 4, Expect: "1.111 kB"},
-		{In: New(1111*Byte, Metric), Prec: 5, Expect: "1.111 kB"},
+		// %f uses number of decimal places for precision.
+		{In: New(1111*Byte, Metric), Format: "%.0f", Expect: "1 kB"},
+		{In: New(1111*Byte, Metric), Format: "%.1f", Expect: "1.1 kB"},
+		{In: New(1111*Byte, Metric), Format: "%.2f", Expect: "1.11 kB"},
+		{In: New(1111*Byte, Metric), Format: "%.3f", Expect: "1.111 kB"},
+		{In: New(1111*Byte, Metric), Format: "%.4f", Expect: "1.1110 kB"},
+
+		// %f defaults to precision of 6.
+		{In: New(1111*Byte, Metric), Format: "%f", Expect: "1.111000 kB"},
+
+		// %g uses signficant figures for precision.
+		{In: New(1111*Byte, Metric), Format: "%.0g", Expect: "1 kB"},
+		{In: New(1111*Byte, Metric), Format: "%.1g", Expect: "1 kB"},
+		{In: New(1111*Byte, Metric), Format: "%.2g", Expect: "1.1 kB"},
+		{In: New(1111*Byte, Metric), Format: "%.3g", Expect: "1.11 kB"},
+		{In: New(1111*Byte, Metric), Format: "%.4g", Expect: "1.111 kB"},
+		{In: New(1111*Byte, Metric), Format: "%.5g", Expect: "1.111 kB"},
+
+		// %g defaults to exact precision.
+		{In: New(1111111111111*Byte, Metric), Format: "%g", Expect: "1.111111111111 TB"},
+
+		// %v formats as %.4g.
+		{In: New(1111*Byte, Metric), Format: "%v", Expect: "1.111 kB"},
+
+		// Invalid verb.
+		{In: New(Byte, Metric), Format: "%s", Expect: "%!s(size=1)"},
 	}
 
 	for _, test := range tests {
-		str := test.In.Format(test.Prec)
-		assertEqual(t, test.Expect, str, "Formatting (%d, %v) precision %d",
-			test.In.Int64(), test.In.Base, test.Prec)
+		str := fmt.Sprintf(test.Format, test.In)
+		assertEqual(t, test.Expect, str, "Formatting (%d, %v) with format %q",
+			test.In.Int64(), test.In.Base, test.Format)
 	}
 }
 

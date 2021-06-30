@@ -221,15 +221,39 @@ func (s Size) String() string {
 	return string(result)
 }
 
-// Format the quantity, rounding to 'precision' signficant figures.
+// Format implements the fmt.Formatter interface.
 //
-// If precision is negative, the quantity is formatted exactly with no rounding.
+// The following verbs are supported:
+//  - 'f': Precision is expressed in decimal places; trailing zeros are preserved.
+//  - 'g': Precision is expressed in significant figures; trailing zeros are removed.
+//  - 'v': Equivalent to '%.4g'.
+//
+// Setting width is not supported.
+// Flags are also not supported.
 //
 // The largest base unit smaller than the quantity is used.
 // For example, 999 bytes is formatted as "999 B" and 1000 bytes is formatted as "1 kB".
-//
-// Trailing zeros are removed.
-func (s Size) Format(precision int) string {
+func (s Size) Format(f fmt.State, verb rune) {
+	var format byte
+	var precision int
+	switch verb {
+	case 'f':
+		format = 'f'
+		precision = 6
+	case 'g':
+		format = 'g'
+		precision = -1
+	case 'v':
+		format = 'g'
+		precision = 4
+	default:
+		fmt.Fprintf(f, "%%!%s(size=%d)", string(verb), s.bytes)
+		return
+	}
+	if prec, ok := f.Precision(); ok {
+		precision = prec
+	}
+
 	var base float64
 	var suffixes [7]string
 	switch s.Base {
@@ -252,10 +276,10 @@ func (s Size) Format(precision int) string {
 	mant = mant / math.Pow(base, exp)
 
 	result := make([]byte, 0, 20) // Pre-allocate a size most numbers would fit within.
-	result = strconv.AppendFloat(result, mant, 'g', precision, 64)
+	result = strconv.AppendFloat(result, mant, format, precision, 64)
 	result = append(result, ' ')
 	result = append(result, suffixes[int(exp)]...)
-	return string(result)
+	f.Write(result)
 }
 
 // MarshalText implements the encoding.TextMarshaler interface.
