@@ -7,6 +7,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
 	"strings"
@@ -198,13 +199,13 @@ func (s Size) String() string {
 
 	switch s.Base {
 	case 0, Metric:
-		for (mant >= 1000 || mant <= -1000) && mant%1000 == 0 && exp < len(metricSuffixes) {
+		for mant != 0 && mant%1000 == 0 && exp < len(metricSuffixes) {
 			exp++
 			mant = mant / 1000
 		}
 		suffix = metricSuffixes[exp]
 	case Binary:
-		for (mant >= 1000 || mant <= -1000) && mant%1024 == 0 && exp < len(binarySuffixes) {
+		for mant != 0 && mant%1024 == 0 && exp < len(binarySuffixes) {
 			exp++
 			mant = mant / 1024
 		}
@@ -218,6 +219,67 @@ func (s Size) String() string {
 	result = append(result, ' ')
 	result = append(result, suffix...)
 	return string(result)
+}
+
+// Format implements the fmt.Formatter interface.
+//
+// The following verbs are supported:
+//  - 'f': Precision is expressed in decimal places; trailing zeros are preserved.
+//  - 'g': Precision is expressed in significant figures; trailing zeros are removed.
+//  - 'v': Equivalent to '%.4g'.
+//
+// Setting width is not supported.
+// Flags are also not supported.
+//
+// The largest base unit smaller than the quantity is used.
+// For example, 999 bytes is formatted as "999 B" and 1000 bytes is formatted as "1 kB".
+func (s Size) Format(f fmt.State, verb rune) {
+	var format byte
+	var precision int
+	switch verb {
+	case 'f':
+		format = 'f'
+		precision = 6
+	case 'g':
+		format = 'g'
+		precision = -1
+	case 'v':
+		format = 'g'
+		precision = 4
+	default:
+		fmt.Fprintf(f, "%%!%s(size=%d)", string(verb), s.bytes)
+		return
+	}
+	if prec, ok := f.Precision(); ok {
+		precision = prec
+	}
+
+	var base float64
+	var suffixes [7]string
+	switch s.Base {
+	case 0, Metric:
+		base = 1000
+		suffixes = metricSuffixes
+	case Binary:
+		base = 1024
+		suffixes = binarySuffixes
+	default:
+		panic("invalid base")
+	}
+
+	mant := float64(s.bytes)
+	var exp float64
+	if mant != 0 {
+		exp = math.Floor(math.Log(math.Abs(mant)) / math.Log(base))
+		exp = math.Min(exp, float64(len(suffixes)))
+	}
+	mant = mant / math.Pow(base, exp)
+
+	result := make([]byte, 0, 20) // Pre-allocate a size most numbers would fit within.
+	result = strconv.AppendFloat(result, mant, format, precision, 64)
+	result = append(result, ' ')
+	result = append(result, suffixes[int(exp)]...)
+	f.Write(result)
 }
 
 // MarshalText implements the encoding.TextMarshaler interface.
