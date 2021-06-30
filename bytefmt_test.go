@@ -198,12 +198,12 @@ func TestFormat(t *testing.T) {
 		{In: New(0, Binary), Prec: 4, Expect: "0 B"},
 
 		// Minimum value representable by int64: -2**62
-		{In: New(math.MinInt64, Metric), Prec: 4, Expect: "-9.223 EB"},
-		{In: New(math.MinInt64, Binary), Prec: 4, Expect: "-8 EiB"},
+		{In: New(math.MinInt64, Metric), Prec: -1, Expect: "-9.223372036854776 EB"},
+		{In: New(math.MinInt64, Binary), Prec: -1, Expect: "-8 EiB"},
 
 		// Maximum value representable by int64: 2**63-1
-		{In: New(math.MaxInt64, Metric), Prec: 4, Expect: "9.223 EB"},
-		{In: New(math.MaxInt64, Binary), Prec: 4, Expect: "8 EiB"},
+		{In: New(math.MaxInt64, Metric), Prec: -1, Expect: "9.223372036854776 EB"},
+		{In: New(math.MaxInt64, Binary), Prec: -1, Expect: "8 EiB"},
 
 		// Thresholds between Metric suffixes
 		{In: New(1*Byte, Metric), Prec: 4, Expect: "1 B"},

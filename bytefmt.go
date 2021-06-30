@@ -7,6 +7,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
 	"strings"
@@ -235,6 +236,14 @@ func (s Size) Format(precision int) string {
 
 	switch s.Base {
 	case 0, Metric:
+		if s.bytes != 0 {
+			exp = int(math.Log(math.Abs(mant)) / math.Log(1000))
+		}
+		if exp > len(metricSuffixes) {
+			exp = len(metricSuffixes)
+		}
+		mant = mant / (math.Pow(1000, float64(exp)))
+
 		for (mant >= 1000 || mant <= -1000) && exp < len(metricSuffixes) {
 			exp++
 			mant = mant / 1000
